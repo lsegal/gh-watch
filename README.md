@@ -8,7 +8,7 @@ gh-watch --interval 30s --concurrency 3 --agent codex owner/repo
 
 The repository argument may also be a GitHub repository URL or a GitHub project URL, such as `https://github.com/users/owner/projects/3`.
 
-Watching a project requires a GitHub CLI token with the `read:project` scope. If project polling reports a missing scope, run `gh auth refresh -s read:project` and restart `gh-watch`.
+Watching a project requires a GitHub CLI token with the `read:project` scope. Because `gh-watch` updates each issue's project status while an agent runs, it also requires the `project` scope. If project polling reports a missing scope, run `gh auth refresh -s read:project`; if a project status update reports a missing scope, run `gh auth refresh -s project`, then restart `gh-watch`.
 
 `--concurrency 0` is normalized to 3. Use `--agent claude`, `--model`, and `--model-level low|medium|high` to configure the agent, or use `--codex-binary` and `--claude-binary` to locate its executable. Agents are launched with their non-interactive, no-sandbox permission-bypass options. Every open issue not already listed in `.gh-watch.json` is handled, including issues created before `gh-watch` started; issue numbers are persisted to avoid duplicate work after restarts.
 

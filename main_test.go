@@ -102,6 +102,13 @@ func TestDecodeProjectIssuesReportsMissingScope(t *testing.T) {
 	}
 }
 
+func TestProjectStatusErrorReportsWriteScope(t *testing.T) {
+	detail := "error: your authentication token is missing required scopes [project]"
+	if !strings.Contains(projectStatusError(45, errors.New("exit status 1"), detail).Error(), "gh auth refresh -s project") {
+		t.Fatal("project status error did not report the project scope")
+	}
+}
+
 func TestIssueListArgsUsesDefaultFilter(t *testing.T) {
 	got := issueListArgs("owner/repo", "label=agent-ready label=other status=closed", false)
 	want := []string{"issue", "list", "--repo", "owner/repo", "--state", "open", "--limit", "1000", "--search", "label:agent-ready label:other status=closed", "--json", "number,title,body,state,createdAt,labels"}

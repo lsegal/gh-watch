@@ -348,9 +348,16 @@ func (g GHCLI) SetIssueStatus(ctx context.Context, repo string, number int, stat
 
 	edit := exec.CommandContext(ctx, g.Binary, "project", "item-edit", "--id", itemID, "--field-id", fieldID, "--project-id", view.ID, "--single-select-option-id", optionID)
 	if output, err := edit.CombinedOutput(); err != nil {
-		return fmt.Errorf("update project status for issue #%d: %w: %s", number, err, strings.TrimSpace(string(output)))
+		return projectStatusError(number, err, strings.TrimSpace(string(output)))
 	}
 	return nil
+}
+
+func projectStatusError(number int, err error, detail string) error {
+	if strings.Contains(detail, "missing required scopes") && strings.Contains(detail, "[project]") {
+		return fmt.Errorf("update project status for issue #%d: %w: %s; authenticate with the project scope using `gh auth refresh -s project`", number, err, detail)
+	}
+	return fmt.Errorf("update project status for issue #%d: %w: %s", number, err, detail)
 }
 
 type CommandRunner struct{ Binary, Agent, Model, ModelLevel, Repo string }

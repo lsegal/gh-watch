@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Explain and report the `project` scope required to update project-board issue status.
 - Skip project-board issues that are already in progress or completed.
 - Avoid applying the `agent-started` label to issues watched through a project board.
 - Add a `--version` flag and promote changelog entries during releases.
