@@ -89,10 +89,10 @@ func TestInvalidRepo(t *testing.T) {
 }
 
 func TestCommandRunnerUsesSelectedAgentSyntax(t *testing.T) {
-	if got := commandArgs(CommandRunner{Agent: "codex"}, Issue{Number: 12}); len(got) != 3 || got[0] != "exec" || got[1] != "--full-auto" || got[2] != "/gh-fix 12" {
+	if got := commandArgs(CommandRunner{Agent: "codex"}, Issue{Number: 12}); len(got) != 3 || got[0] != "exec" || got[1] != "--dangerously-bypass-approvals-and-sandbox" || got[2] != "/gh-fix 12" {
 		t.Fatalf("codex args: %#v", got)
 	}
-	if got := commandArgs(CommandRunner{Agent: "claude"}, Issue{Number: 12}); len(got) != 2 || got[0] != "-p" || got[1] != "/gh-fix 12" {
+	if got := commandArgs(CommandRunner{Agent: "claude"}, Issue{Number: 12}); len(got) != 3 || got[0] != "-p" || got[1] != "--dangerously-skip-permissions" || got[2] != "/gh-fix 12" {
 		t.Fatalf("claude args: %#v", got)
 	}
 }

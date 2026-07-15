@@ -68,9 +68,9 @@ type CommandRunner struct{ Binary, Agent string }
 func commandArgs(r CommandRunner, issue Issue) []string {
 	prompt := fmt.Sprintf("/gh-fix %d", issue.Number)
 	if r.Agent == "codex" {
-		return []string{"exec", "--full-auto", prompt}
+		return []string{"exec", "--dangerously-bypass-approvals-and-sandbox", prompt}
 	}
-	return []string{"-p", prompt}
+	return []string{"-p", "--dangerously-skip-permissions", prompt}
 }
 
 func (r CommandRunner) Run(ctx context.Context, issue Issue) error {
