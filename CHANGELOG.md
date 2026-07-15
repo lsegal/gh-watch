@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Use the versioned changelog section as GitHub release notes.
 - Fix labeling issues discovered while watching GitHub project boards.
 -Recover stuck project issues from their `In Progress` board status without relying on the `agent-started` label.
 - Use the `bug:` prefix for new bug-report issue titles.

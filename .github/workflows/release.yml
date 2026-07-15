@@ -55,7 +55,25 @@ jobs:
           if gh skill publish --help >/dev/null 2>&1; then gh skill publish --fix; else echo 'gh skill publish is unavailable; public GitHub skill source will be indexed by skills.sh'; fi
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Extract release notes
+        shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          extract_section() {
+            awk -v heading="$1" '
+              index($0, heading) == 1 { in_section=1; next }
+              in_section && /^## / { exit }
+              in_section { print }
+            ' CHANGELOG.md | sed '/^[[:space:]]*$/d'
+          }
+          extract_section "## $TAG -" > release-notes.md
+          if [[ ! -s release-notes.md ]]; then
+            extract_section "## Unreleased" > release-notes.md
+          fi
+          [[ -s release-notes.md ]] || { echo "no changelog entry found for $TAG" >&2; exit 1; }
       - name: Create GitHub release
-        run: gh release create "${{ steps.release.outputs.tag }}" dist/*.tar.gz dist/*.zip dist/install.sh dist/install.ps1 --generate-notes
+        run: gh release create "${{ steps.release.outputs.tag }}" dist/*.tar.gz dist/*.zip dist/install.sh dist/install.ps1 --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ github.token }}
