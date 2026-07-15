@@ -76,7 +76,18 @@ func main() {
 	gh.Filter, gh.AllIssues = *filter, *allIssues
 	targets := flag.Args()
 	events := make(chan struct{}, 1)
-	w := &Watcher{Repo: targets[0], Targets: targets, Interval: *interval, UseWebhooks: !*poll, Events: events, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel, Repo: targets[0], Output: os.Stdout}, Out: os.Stdout}
+	output := io.Writer(os.Stdout)
+	var ui *TerminalUI
+	if isTerminal(os.Stdout) {
+		ui = NewTerminalUI()
+		output = ui.Writer()
+		go func() { _ = ui.Run(ctx) }()
+	}
+	wOut := output
+	if ui != nil {
+		wOut = io.Discard
+	}
+	w := &Watcher{Repo: targets[0], Targets: targets, Interval: *interval, UseWebhooks: !*poll, Events: events, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, UI: ui, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel, Repo: targets[0], Output: output}, Out: wOut}
 	var server *http.Server
 	if !*poll {
 		server = &http.Server{Addr: *listen, Handler: WebhookHandler{Events: events, Secret: *webhookSecret, WebhookPath: *webhookPath}}
@@ -86,9 +97,9 @@ func main() {
 			}
 		}()
 		defer server.Close()
-		fmt.Fprintf(os.Stdout, "webhook server listening on %s%s\n", *listen, *webhookPath)
-		fmt.Fprintf(os.Stdout, "starting ngrok tunnel for %s\n", *listen)
-		tunnel, err := startNgrok(ctx, *ngrokBinary, *listen, *ngrokAPI, os.Stdout)
+		fmt.Fprintf(output, "webhook server listening on %s%s\n", *listen, *webhookPath)
+		fmt.Fprintf(output, "starting ngrok tunnel for %s\n", *listen)
+		tunnel, err := startNgrok(ctx, *ngrokBinary, *listen, *ngrokAPI, output)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -99,7 +110,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stdout, "ngrok tunnel ready at %s\n", tunnel.URL())
+		fmt.Fprintf(output, "ngrok tunnel ready at %s\n", tunnel.URL())
 		configured := 0
 		for _, target := range targets {
 			parsed, parseErr := parseTarget(target)
@@ -111,16 +122,27 @@ func main() {
 				os.Exit(1)
 			}
 			configured++
-			fmt.Fprintf(os.Stdout, "configured GitHub webhook for %s\n", parsed.repo)
+			fmt.Fprintf(output, "configured GitHub webhook for %s\n", parsed.repo)
 		}
 		if configured == 0 {
-			fmt.Fprintln(os.Stdout, "no repository targets available for webhook configuration")
+			fmt.Fprintln(output, "no repository targets available for webhook configuration")
 		}
 	}
 	if err := w.Run(ctx); err != nil {
+		if ui != nil {
+			ui.program.Quit()
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	if ui != nil {
+		ui.program.Quit()
+	}
+}
+
+func isTerminal(file *os.File) bool {
+	info, err := file.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
 type GHCLI struct {

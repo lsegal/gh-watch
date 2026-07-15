@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,6 +60,10 @@ type IssueStatuser interface {
 type AgentRunner interface {
 	Run(context.Context, Issue) error
 }
+type UIReporter interface {
+	Snapshot(WatchSnapshot)
+	Log(string)
+}
 type Watcher struct {
 	Repo        string
 	Targets     []string
@@ -72,6 +77,7 @@ type Watcher struct {
 	Out         io.Writer
 	Labels      LabelEnsurer
 	Status      IssueStatuser
+	UI          UIReporter
 	logMu       sync.Mutex
 }
 
@@ -107,7 +113,11 @@ func (s *taskState) snapshot() (running, queued, completed, failed int) {
 func (w *Watcher) logf(format string, args ...interface{}) {
 	w.logMu.Lock()
 	defer w.logMu.Unlock()
-	fmt.Fprintf(w.Out, "%s "+format+"\n", append([]interface{}{time.Now().Format("2006-01-02 15:04:05")}, args...)...)
+	line := fmt.Sprintf("%s "+format, append([]interface{}{time.Now().Format("2006-01-02 15:04:05")}, args...)...)
+	fmt.Fprintln(w.Out, line)
+	if w.UI != nil {
+		w.UI.Log(line)
+	}
 }
 
 func (w *Watcher) Run(ctx context.Context) error {
@@ -158,6 +168,30 @@ func (w *Watcher) Run(ctx context.Context) error {
 	var tasks taskState
 	var workMu sync.Mutex
 	active := make(map[string]string)
+	jobs := make(map[string]JobSnapshot)
+	issueCounts := make(map[string]int)
+	var jobMu sync.Mutex
+	publish := func() {
+		if w.UI == nil {
+			return
+		}
+		running, queued, completed, failed := tasks.snapshot()
+		jobMu.Lock()
+		list := make([]JobSnapshot, 0, len(jobs))
+		for _, job := range jobs {
+			list = append(list, job)
+		}
+		counts := make(map[string]int, len(issueCounts))
+		for target, count := range issueCounts {
+			counts[target] = count
+		}
+		jobMu.Unlock()
+		slices.SortFunc(list, func(a, b JobSnapshot) int { return b.Started.Compare(a.Started) })
+		if len(list) > maxVisibleJobs {
+			list = list[:maxVisibleJobs]
+		}
+		w.UI.Snapshot(WatchSnapshot{Targets: targets, IssueCounts: counts, Running: running, Queued: queued, Completed: completed, Failed: failed, Concurrency: w.Concurrency, Interval: w.Interval, UseWebhooks: w.UseWebhooks, WebhookOnline: w.UseWebhooks, Jobs: list})
+	}
 	pollNumber := 0
 	poll := func() error {
 		pollNumber++
@@ -171,6 +205,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 				w.logf("poll #%d failed while listing %s: %v", n, target, err)
 				return err
 			}
+			jobMu.Lock()
+			issueCounts[target] = len(batch)
+			jobMu.Unlock()
 			for i := range batch {
 				batch[i].Target = target
 				if batch[i].Repository == "" {
@@ -226,6 +263,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 			workMu.Lock()
 			key := issueKey(issue)
 			active[key] = session
+			jobMu.Lock()
+			jobs[key] = JobSnapshot{Number: issue.Number, Title: issue.Title, Status: "queued", Started: time.Now()}
+			jobMu.Unlock()
 			work[key] = workState{Status: "active", SessionID: session}
 			err = saveScopedWorkState(w.StatePath, work, targets)
 			workMu.Unlock()
@@ -238,6 +278,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 			running = tasks.running
 			tasks.mu.Unlock()
 			w.logf("issue #%d queued (tasks: %d running, %d queued)", issue.Number, running, queued)
+			publish()
 			select {
 			case sem <- struct{}{}:
 				tasks.mu.Lock()
@@ -246,6 +287,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 				queued = tasks.queued
 				running = tasks.running
 				tasks.mu.Unlock()
+				jobMu.Lock()
+				jobs[issueKey(issue)] = JobSnapshot{Number: issue.Number, Title: issue.Title, Status: "active", Started: jobs[issueKey(issue)].Started}
+				jobMu.Unlock()
+				publish()
 			case <-ctx.Done():
 				tasks.mu.Lock()
 				tasks.queued--
@@ -270,6 +315,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 					workMu.Lock()
 					key := issueKey(i)
 					delete(active, key)
+					jobMu.Lock()
+					jobs[key] = JobSnapshot{Number: i.Number, Title: i.Title, Status: "failed", Started: jobs[key].Started, Log: err.Error()}
+					jobMu.Unlock()
 					work[key] = workState{Status: "failed", SessionID: work[key].SessionID}
 					_ = saveScopedWorkState(w.StatePath, work, targets)
 					workMu.Unlock()
@@ -279,6 +327,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 					running, queued, completed, failed := tasks.running, tasks.queued, tasks.completed, tasks.failed
 					tasks.mu.Unlock()
 					w.logf("issue #%d failed: %v (tasks: %d running, %d queued, %d completed, %d failed)", i.Number, err, running, queued, completed, failed)
+					publish()
 				} else {
 					if w.Status != nil {
 						if statusErr := w.Status.SetIssueStatus(context.Background(), i.Target, i.Number, "Done"); statusErr != nil {
@@ -291,6 +340,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 					workMu.Lock()
 					key := issueKey(i)
 					delete(active, key)
+					jobMu.Lock()
+					jobs[key] = JobSnapshot{Number: i.Number, Title: i.Title, Status: "complete", Started: jobs[key].Started}
+					jobMu.Unlock()
 					work[key] = workState{Status: "completed", SessionID: work[key].SessionID}
 					_ = saveScopedWorkState(w.StatePath, work, targets)
 					workMu.Unlock()
@@ -300,6 +352,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 					running, queued, completed, failed := tasks.running, tasks.queued, tasks.completed, tasks.failed
 					tasks.mu.Unlock()
 					w.logf("issue #%d completed (tasks: %d running, %d queued, %d completed, %d failed)", i.Number, running, queued, completed, failed)
+					publish()
 				}
 			}(issue, startedRunning, startedQueued)
 		}
@@ -315,6 +368,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 		}
 		return err
 	}
+	publish()
 	var ticker *time.Ticker
 	var tick <-chan time.Time
 	if !w.UseWebhooks {
