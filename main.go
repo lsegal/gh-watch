@@ -19,6 +19,8 @@ func main() {
 	codexBinary := flag.String("codex-binary", "codex", "Codex executable")
 	claudeBinary := flag.String("claude-binary", "claude", "Claude executable")
 	statePath := flag.String("state", ".gh-watch.json", "file used to remember handled issue numbers")
+	filter := flag.String("filter", "label=agent-ready", "GitHub issue search filter")
+	allIssues := flag.Bool("all-issues", false, "disable the default issue filter")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, "usage: gh-watch [flags] OWNER/REPO")
@@ -44,6 +46,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	gh := GHCLI{Binary: "gh"}
+	gh.Filter, gh.AllIssues = *filter, *allIssues
 	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Runner: CommandRunner{Binary: binary, Agent: *agent}, Out: os.Stdout}
 	if err := w.Run(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -51,7 +54,11 @@ func main() {
 	}
 }
 
-type GHCLI struct{ Binary string }
+type GHCLI struct {
+	Binary    string
+	Filter    string
+	AllIssues bool
+}
 
 type managedLabel struct {
 	name, color, description string
@@ -73,8 +80,17 @@ func (g GHCLI) EnsureLabels(ctx context.Context, repo string) error {
 }
 
 func (g GHCLI) ListIssues(ctx context.Context, repo string) ([]Issue, error) {
-	cmd := exec.CommandContext(ctx, g.Binary, "issue", "list", "--repo", repo, "--state", "open", "--limit", "1000", "--json", "number,title,state,createdAt")
+	args := issueListArgs(repo, g.Filter, g.AllIssues)
+	cmd := exec.CommandContext(ctx, g.Binary, args...)
 	return decodeIssues(cmd.Output())
+}
+
+func issueListArgs(repo, filter string, allIssues bool) []string {
+	args := []string{"issue", "list", "--repo", repo, "--state", "open", "--limit", "1000"}
+	if !allIssues && filter != "" {
+		args = append(args, "--search", filter)
+	}
+	return append(args, "--json", "number,title,state,createdAt")
 }
 func decodeIssues(data []byte, err error) ([]Issue, error) {
 	if err != nil {
