@@ -3,6 +3,7 @@
 ## Unreleased
 
 -Recover stuck project issues from their `In Progress` board status without relying on the `agent-started` label.
+- Use the `bug:` prefix for new bug-report issue titles.
 - Omit the default `agent-ready` label filter when watching a project board.
 - Allow selecting the agent model and reasoning level with `--model` and `--model-level`.
 - Omit robot output from autofilled bug reports to prevent private data from being disclosed.

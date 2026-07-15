@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Report a gh-watch failure
-title: "[Bug] "
+title: "bug: "
 labels: ""
 assignees: ""
 ---
