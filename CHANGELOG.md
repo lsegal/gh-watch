@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Show the Codex weekly quota remaining in the dashboard status bar.
 - Improve the terminal dashboard with titled panels, a dedicated scrolling log area, and clearer status boundaries.
 - Log webhook delivery details and retry webhook-triggered issue refreshes after GitHub indexing catches up.
 - Preserve pending webhook follow-up refreshes so newly created issues are not skipped when deliveries arrive close together.
