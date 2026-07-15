@@ -1,0 +1,23 @@
+# gh-watch
+
+Poll a GitHub repository and start an agent for each newly discovered open issue.
+
+```sh
+gh-watch --interval 30s --concurrency 3 --agent codex owner/repo
+```
+
+`--concurrency 0` is normalized to 3. Use `--agent claude`, `--codex-binary`, or `--claude-binary` to select and locate the agent executable. The first poll establishes a baseline; issue numbers are persisted in `.gh-watch.json` to avoid duplicate work after restarts.
+
+The installer checks for `gh`, downloads the matching GitHub release, and installs the `gh-fix` skill globally through skills.sh:
+
+```sh
+curl -fsSL https://github.com/lsegal/gh-watch/releases/latest/download/install.sh | bash
+```
+
+On Windows PowerShell:
+
+```powershell
+irm https://github.com/lsegal/gh-watch/releases/latest/download/install.ps1 | iex
+```
+
+The public `.agents/skills/gh-fix` directory is the skills.sh package source.
