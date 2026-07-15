@@ -37,8 +37,8 @@ func main() {
 		fmt.Println(version)
 		return
 	}
-	if flag.NArg() != 1 {
-		fmt.Fprintln(os.Stderr, "usage: gh-watch [flags] OWNER/REPO or GitHub URL")
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: gh-watch [flags] TARGET [TARGET ...]")
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
@@ -66,7 +66,8 @@ func main() {
 	defer stop()
 	gh := GHCLI{Binary: "gh"}
 	gh.Filter, gh.AllIssues = *filter, *allIssues
-	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel, Repo: flag.Arg(0)}, Out: os.Stdout}
+	targets := flag.Args()
+	w := &Watcher{Repo: targets[0], Targets: targets, Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel}, Out: os.Stdout}
 	if err := w.Run(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -390,7 +391,11 @@ func (r CommandRunner) Run(ctx context.Context, issue Issue) error {
 	var output bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &output, &output
 	if err := cmd.Run(); err != nil {
-		report, reportErr := bugReportURL(r.Repo, issue, args, output.String())
+		repo := r.Repo
+		if issue.Target != "" {
+			repo = issueRepository(issue.Target, issue)
+		}
+		report, reportErr := bugReportURL(repo, issue, args, output.String())
 		if reportErr != nil {
 			return fmt.Errorf("agent failed: %w (could not create bug report URL: %v)", err, reportErr)
 		}
