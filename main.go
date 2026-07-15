@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -66,7 +67,7 @@ func main() {
 	defer stop()
 	gh := GHCLI{Binary: "gh"}
 	gh.Filter, gh.AllIssues = *filter, *allIssues
-	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel, Repo: flag.Arg(0)}, Out: os.Stdout}
+	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: gh, Labels: gh, Status: gh, Runner: CommandRunner{Binary: binary, Agent: *agent, Model: *model, ModelLevel: *modelLevel, Repo: flag.Arg(0), Output: os.Stdout}, Out: os.Stdout}
 	if err := w.Run(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -360,7 +361,10 @@ func projectStatusError(number int, err error, detail string) error {
 	return fmt.Errorf("update project status for issue #%d: %w: %s", number, err, detail)
 }
 
-type CommandRunner struct{ Binary, Agent, Model, ModelLevel, Repo string }
+type CommandRunner struct {
+	Binary, Agent, Model, ModelLevel, Repo string
+	Output                                 io.Writer
+}
 
 func commandArgs(r CommandRunner, issue Issue) []string {
 	prompt := fmt.Sprintf("/gh-fix %d", issue.Number)
@@ -388,7 +392,11 @@ func (r CommandRunner) Run(ctx context.Context, issue Issue) error {
 	args := commandArgs(r, issue)
 	cmd := exec.CommandContext(ctx, r.Binary, args...)
 	var output bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &output, &output
+	var agentOutput io.Writer = &output
+	if r.Output != nil {
+		agentOutput = io.MultiWriter(&output, r.Output)
+	}
+	cmd.Stdout, cmd.Stderr = agentOutput, agentOutput
 	if err := cmd.Run(); err != nil {
 		report, reportErr := bugReportURL(r.Repo, issue, args, output.String())
 		if reportErr != nil {
