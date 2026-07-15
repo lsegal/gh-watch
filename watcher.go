@@ -144,6 +144,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	labeler, _ := w.Labels.(IssueLabeler)
+	if err := w.resetFailedWork(context.Background(), work, labeler); err != nil {
+		return err
+	}
 	seen := make(map[string]bool, len(work))
 	for key := range work {
 		seen[key] = true
@@ -154,7 +158,6 @@ func (w *Watcher) Run(ctx context.Context) error {
 	var tasks taskState
 	var workMu sync.Mutex
 	active := make(map[string]string)
-	labeler, _ := w.Labels.(IssueLabeler)
 	pollNumber := 0
 	poll := func() error {
 		pollNumber++
@@ -347,6 +350,36 @@ func (w *Watcher) Run(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (w *Watcher) resetFailedWork(ctx context.Context, work map[string]workState, labeler IssueLabeler) error {
+	for key, state := range work {
+		if state.Status != "failed" {
+			continue
+		}
+		separator := strings.LastIndexByte(key, '#')
+		if separator <= 0 {
+			return fmt.Errorf("invalid failed work key %q", key)
+		}
+		target := key[:separator]
+		number, err := strconv.Atoi(key[separator+1:])
+		if err != nil {
+			return fmt.Errorf("invalid failed work key %q: %w", key, err)
+		}
+		issue := Issue{Number: number, Target: target}
+		if labeler != nil && !isProjectTarget(target) {
+			if err := labeler.SetIssueLabel(ctx, issueRepository(target, issue), number, false); err != nil {
+				return fmt.Errorf("reset failed issue #%d label: %w", number, err)
+			}
+		}
+		if w.Status != nil {
+			if err := w.Status.SetIssueStatus(ctx, target, number, "Todo"); err != nil {
+				return fmt.Errorf("reset failed issue #%d project status: %w", number, err)
+			}
+		}
+		w.logf("reset failed issue #%d to Todo", number)
+	}
+	return nil
 }
 
 func issueBlocked(issue Issue) (bool, string) {

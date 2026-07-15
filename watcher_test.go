@@ -228,6 +228,62 @@ func TestWatcherStopsWhenLabelEnsuringFails(t *testing.T) {
 	}
 }
 
+func TestWatcherResetsFailedWorkOnStart(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	if err := saveWorkState(statePath, map[int]workState{7: {Status: "failed"}, 8: {Status: "completed"}}); err != nil {
+		t.Fatal(err)
+	}
+	labels := &fakeIssueLabeler{}
+	status := &fakeIssueStatuser{}
+	w := &Watcher{
+		Repo: "o/r", Interval: time.Hour, Concurrency: 1, StatePath: statePath,
+		Issues: &fakeSource{batches: [][]Issue{{}}}, Runner: &fakeRunner{release: make(chan struct{})},
+		Labels: labels, Status: status,
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := w.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(labels.labels, []bool{false}) {
+		t.Fatalf("labels = %v, want [false]", labels.labels)
+	}
+	status.mu.Lock()
+	defer status.mu.Unlock()
+	if !reflect.DeepEqual(status.statuses, []string{"Todo"}) {
+		t.Fatalf("statuses = %v, want [Todo]", status.statuses)
+	}
+}
+
+func TestWatcherResetsFailedProjectWorkOnStart(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	if err := saveWorkState(statePath, map[int]workState{7: {Status: "failed"}}); err != nil {
+		t.Fatal(err)
+	}
+	labels := &fakeIssueLabeler{}
+	status := &fakeIssueStatuser{}
+	w := &Watcher{
+		Repo: "https://github.com/o/r/projects/3", Interval: time.Hour, Concurrency: 1, StatePath: statePath,
+		Issues: &fakeSource{batches: [][]Issue{{}}}, Runner: &fakeRunner{release: make(chan struct{})},
+		Labels: labels, Status: status,
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := w.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(labels.labels) != 0 {
+		t.Fatalf("project labels = %v, want no changes", labels.labels)
+	}
+	status.mu.Lock()
+	defer status.mu.Unlock()
+	if !reflect.DeepEqual(status.statuses, []string{"Todo"}) {
+		t.Fatalf("statuses = %v, want [Todo]", status.statuses)
+	}
+}
+
 func TestCommandRunnerUsesSelectedAgentSyntax(t *testing.T) {
 	if got := commandArgs(CommandRunner{Agent: "codex"}, Issue{Number: 12}); len(got) != 3 || got[0] != "exec" || got[1] != "--dangerously-bypass-approvals-and-sandbox" || got[2] != "/gh-fix 12" {
 		t.Fatalf("codex args: %#v", got)
