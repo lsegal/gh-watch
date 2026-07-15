@@ -45,7 +45,8 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: GHCLI{Binary: "gh", Filter: *filter, AllIssues: *allIssues}, Runner: CommandRunner{Binary: binary, Agent: *agent}, Out: os.Stdout}
+	cli := GHCLI{Binary: "gh", Filter: *filter, AllIssues: *allIssues}
+	w := &Watcher{Repo: flag.Arg(0), Interval: *interval, Concurrency: limit, StatePath: *statePath, Issues: cli, Labels: cli, Runner: CommandRunner{Binary: binary, Agent: *agent}, Out: os.Stdout}
 	if err := w.Run(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -69,13 +70,33 @@ func issueListArgs(repo, filter string, allIssues bool) []string {
 	if !allIssues && filter != "" {
 		args = append(args, "--search", filter)
 	}
-	return append(args, "--json", "number,title,state,createdAt")
+	return append(args, "--json", "number,title,state,createdAt,labels")
 }
 func decodeIssues(data []byte, err error) ([]Issue, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list issues: %w", err)
 	}
 	return parseIssues(data)
+}
+
+func (g GHCLI) EnsureLabel(ctx context.Context, repo string) error {
+	cmd := exec.CommandContext(ctx, g.Binary, "label", "create", "agent-started", "--repo", repo, "--color", "1D76DB", "--description", "An agent is working on this issue", "--force")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("create agent-started label: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+func (g GHCLI) SetIssueLabel(ctx context.Context, repo string, number int, add bool) error {
+	action := "--remove-label"
+	if add {
+		action = "--add-label"
+	}
+	cmd := exec.CommandContext(ctx, g.Binary, "issue", "edit", fmt.Sprintf("%d", number), "--repo", repo, action, "agent-started")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%s agent-started label on issue #%d: %w: %s", strings.TrimPrefix(action, "--"), number, err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 type CommandRunner struct{ Binary, Agent string }
