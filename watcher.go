@@ -25,8 +25,10 @@ type IssueLabel struct {
 type IssueSource interface {
 	ListIssues(context.Context, string) ([]Issue, error)
 }
+type LabelEnsurer interface {
+	EnsureLabels(context.Context, string) error
+}
 type IssueLabeler interface {
-	EnsureLabel(context.Context, string) error
 	SetIssueLabel(context.Context, string, int, bool) error
 }
 type AgentRunner interface {
@@ -40,7 +42,7 @@ type Watcher struct {
 	Issues      IssueSource
 	Runner      AgentRunner
 	Out         io.Writer
-	Labels      IssueLabeler
+	Labels      LabelEnsurer
 	logMu       sync.Mutex
 }
 
@@ -85,9 +87,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 		w.Out = io.Discard
 	}
 	if w.Labels != nil {
-		if err := w.Labels.EnsureLabel(ctx, w.Repo); err != nil {
+		if err := w.Labels.EnsureLabels(ctx, w.Repo); err != nil {
 			return err
 		}
+		w.logf("ensured agent labels exist")
 	}
 	work, err := loadWorkState(w.StatePath)
 	if err != nil {
@@ -103,6 +106,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	var tasks taskState
 	var workMu sync.Mutex
 	active := make(map[int]string)
+	labeler, _ := w.Labels.(IssueLabeler)
 	pollNumber := 0
 	poll := func() error {
 		pollNumber++
@@ -143,8 +147,8 @@ func (w *Watcher) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			if w.Labels != nil {
-				if err := w.Labels.SetIssueLabel(ctx, w.Repo, issue.Number, true); err != nil {
+			if labeler != nil {
+				if err := labeler.SetIssueLabel(ctx, w.Repo, issue.Number, true); err != nil {
 					return err
 				}
 			}
@@ -183,8 +187,8 @@ func (w *Watcher) Run(ctx context.Context) error {
 				defer func() { <-sem }()
 				w.logf("issue #%d started (tasks: %d running, %d queued)", i.Number, running, queued)
 				if err := w.Runner.Run(ctx, i); err != nil {
-					if w.Labels != nil {
-						_ = w.Labels.SetIssueLabel(context.Background(), w.Repo, i.Number, false)
+					if labeler != nil {
+						_ = labeler.SetIssueLabel(context.Background(), w.Repo, i.Number, false)
 					}
 					workMu.Lock()
 					delete(active, i.Number)
@@ -198,8 +202,8 @@ func (w *Watcher) Run(ctx context.Context) error {
 					tasks.mu.Unlock()
 					w.logf("issue #%d failed: %v (tasks: %d running, %d queued, %d completed, %d failed)", i.Number, err, running, queued, completed, failed)
 				} else {
-					if w.Labels != nil {
-						_ = w.Labels.SetIssueLabel(context.Background(), w.Repo, i.Number, false)
+					if labeler != nil {
+						_ = labeler.SetIssueLabel(context.Background(), w.Repo, i.Number, false)
 					}
 					workMu.Lock()
 					delete(active, i.Number)
