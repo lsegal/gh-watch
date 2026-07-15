@@ -8,6 +8,8 @@ gh-watch --interval 30s --concurrency 3 --agent codex owner/repo
 
 `--concurrency 0` is normalized to 3. Use `--agent claude`, `--codex-binary`, or `--claude-binary` to select and locate the agent executable. The first poll establishes a baseline; issue numbers are persisted in `.gh-watch.json` to avoid duplicate work after restarts.
 
+Runtime progress is written to stdout with timestamps. It reports each poll's open-issue count, baseline/new-issue detection, queued and running task counts, agent completion/failure totals, poll retries, and shutdown progress.
+
 The installer checks for `gh`, downloads the matching GitHub release, and installs the `gh-fix` skill globally through skills.sh:
 
 ```sh

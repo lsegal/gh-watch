@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -60,8 +61,9 @@ func TestWatcherSeedsThenRunsNewIssuesWithLimit(t *testing.T) {
 	dir := t.TempDir()
 	src := &fakeSource{batches: [][]Issue{{{Number: 1}, {Number: 2}}, {{Number: 1}, {Number: 2}, {Number: 3}, {Number: 4}}}}
 	r := &fakeRunner{release: make(chan struct{})}
+	var logs bytes.Buffer
 	ctx, cancel := context.WithCancel(context.Background())
-	w := &Watcher{Repo: "o/r", Interval: time.Millisecond, Concurrency: 2, StatePath: filepath.Join(dir, "state"), Issues: src, Runner: r, Out: os.Stdout}
+	w := &Watcher{Repo: "o/r", Interval: time.Millisecond, Concurrency: 2, StatePath: filepath.Join(dir, "state"), Issues: src, Runner: r, Out: &logs}
 	done := make(chan error, 1)
 	go func() { done <- w.Run(ctx) }()
 	time.Sleep(20 * time.Millisecond)
@@ -72,6 +74,11 @@ func TestWatcherSeedsThenRunsNewIssuesWithLimit(t *testing.T) {
 	}
 	if len(r.got) != 2 || r.max > 2 {
 		t.Fatalf("got=%v max=%d", r.got, r.max)
+	}
+	for _, want := range []string{"established the baseline", "discovered 2 new issue(s)", "tasks: 2 running", "shutdown requested"} {
+		if !strings.Contains(logs.String(), want) {
+			t.Errorf("logs missing %q:\n%s", want, logs.String())
+		}
 	}
 }
 func TestInvalidRepo(t *testing.T) {
