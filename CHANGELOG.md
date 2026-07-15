@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update project-board issue status as agents start and finish work.
 - Report the required `read:project` scope when project-board polling cannot access project items.
 - Preserve agent session IDs after an issue is completed.
 - Remove `agent-ready` and `agent-started` labels after the originating PR is merged.
