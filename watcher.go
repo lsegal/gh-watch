@@ -331,8 +331,12 @@ func (w *Watcher) Run(ctx context.Context) error {
 					publish()
 				}}
 				var runErr error
-				if runner, ok := w.Runner.(AgentOutputRunner); ok {
-					runErr = runner.RunWithOutput(ctx, i, jobOutput)
+				if w.UI != nil {
+					if runner, ok := w.Runner.(AgentOutputRunner); ok {
+						runErr = runner.RunWithOutput(ctx, i, jobOutput)
+					} else {
+						runErr = w.Runner.Run(ctx, i)
+					}
 				} else {
 					runErr = w.Runner.Run(ctx, i)
 				}

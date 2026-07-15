@@ -4,6 +4,7 @@
 
 - Ask launched agents to summarize changes without printing code diffs or large code blocks.
 - Show agent output in its dashboard job card.
+- Do not retain agent output outside the interactive dashboard.
 - Show the Codex weekly quota remaining in the dashboard status bar.
 - Improve the terminal dashboard with titled panels, a dedicated scrolling log area, and clearer status boundaries.
 - Log webhook delivery details and retry webhook-triggered issue refreshes after GitHub indexing catches up.
