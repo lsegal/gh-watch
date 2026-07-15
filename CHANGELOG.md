@@ -6,6 +6,7 @@
 - Watch multiple repository or project targets in one process.
 - Support GitHub webhooks as the default issue refresh mechanism, with polling available through `--poll`.
 - Manage an ngrok tunnel and synchronize GitHub webhooks for watched repositories.
+- Show an interactive Bubble Tea dashboard with job cards, status counts, targets, and push or polling state when attached to a terminal.
 
 ## v1.0.0 - 2026-07-15
 
