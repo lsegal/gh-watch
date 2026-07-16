@@ -65,9 +65,8 @@ func readCodexQuota(ctx context.Context, binary string) (string, error) {
 			return "", err
 		}
 	}
-	if err := stdin.Close(); err != nil {
-		return "", err
-	}
+	// Keep stdin open while reading: app-server can finish the request only
+	// after it has sent the response, and treats EOF as a client disconnect.
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		var message struct {

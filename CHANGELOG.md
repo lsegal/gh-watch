@@ -7,6 +7,7 @@
 - Do not retain agent output outside the interactive dashboard.
 - Show the Codex weekly quota remaining in the dashboard status bar.
 - Fix the Codex quota status showing as unavailable.
+- Keep the Codex app-server stream open until the quota response is received.
 - Improve the terminal dashboard with titled panels, a dedicated scrolling log area, and clearer status boundaries.
 - Log webhook delivery details and retry webhook-triggered issue refreshes after GitHub indexing catches up.
 - Preserve pending webhook follow-up refreshes so newly created issues are not skipped when deliveries arrive close together.

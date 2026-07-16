@@ -60,9 +60,15 @@ func TestFormatCodexQuota(t *testing.T) {
 
 func TestCodexRateLimitsRequestOmitsParams(t *testing.T) {
 	requests := codexQuotaRequests()
+	if len(requests) != 3 {
+		t.Fatalf("request count = %d, want 3", len(requests))
+	}
 	var request map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(requests[len(requests)-1]), &request); err != nil {
 		t.Fatal(err)
+	}
+	if request["method"] == nil || string(request["method"]) != `"account/rateLimits/read"` {
+		t.Fatalf("last request method = %s", request["method"])
 	}
 	if _, ok := request["params"]; ok {
 		t.Fatal("account/rateLimits/read request must omit params")
