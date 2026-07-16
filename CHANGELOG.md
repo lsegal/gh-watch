@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Show agent progress in dashboard cards and replace it with a checkmark when complete.
 - Colorize the dashboard's idle, active, and total job counts.
 - Reload and resynchronize when `.gh-watch.json` changes.
 - Default issue watching to open issues assigned to the current user.
