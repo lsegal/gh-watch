@@ -18,6 +18,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/mattn/go-isatty"
 )
 
 var version = "dev"
@@ -487,7 +489,16 @@ func (r CommandRunner) RunWithOutput(ctx context.Context, issue Issue, output io
 }
 
 func newAgentCommand(ctx context.Context, binary string, args ...string) *exec.Cmd {
-	return exec.CommandContext(ctx, binary, args...)
+	cmd := exec.CommandContext(ctx, binary, args...)
+	// Codex treats non-terminal stdin as an optional prompt stream even when
+	// the positional prompt is already provided. Preserve a terminal stdin for
+	// interactive launches so it does not print the additional-input notice;
+	// use the null device when running headlessly so the agent cannot consume
+	// unrelated input or wait on an open pipe.
+	if isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd()) {
+		cmd.Stdin = os.Stdin
+	}
+	return cmd
 }
 
 func (r CommandRunner) run(ctx context.Context, issue Issue, jobOutput io.Writer) error {
