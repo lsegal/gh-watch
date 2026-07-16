@@ -74,9 +74,9 @@ var (
 		lipgloss.NewStyle().Background(lipgloss.Color("29")).Foreground(lipgloss.Color("255")).Padding(0, 1),
 		lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("255")).Padding(0, 1),
 	}
-	idleCountStyle   = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("241"))
-	activeCountStyle = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("42"))
-	totalCountStyle  = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("205"))
+	idleCountStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	activeCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
+	totalCountStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 )
 
 func newDashboard() dashboard {
