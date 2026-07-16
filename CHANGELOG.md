@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Use the project item discovered during polling when updating its board status.
 - Keep watching when a failed project issue has been removed from the board.
 - Use the available dashboard card width for agent issue titles.
 - Fix dashboard status backgrounds, agent title backgrounds, and spacing between panels.
