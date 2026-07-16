@@ -128,13 +128,26 @@ func TestWatcherRunsUnseenIssuesWithLimit(t *testing.T) {
 	go func() { done <- w.Run(ctx) }()
 	time.Sleep(20 * time.Millisecond)
 	close(r.release)
-	time.Sleep(20 * time.Millisecond)
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		r.mu.Lock()
+		dispatched := len(r.got)
+		r.mu.Unlock()
+		if dispatched == 4 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
-	if len(r.got) != 4 || r.max > 2 {
-		t.Fatalf("got=%v max=%d", r.got, r.max)
+	r.mu.Lock()
+	got := append([]int(nil), r.got...)
+	max := r.max
+	r.mu.Unlock()
+	if len(got) != 4 || max > 2 {
+		t.Fatalf("got=%v max=%d", got, max)
 	}
 	for _, want := range []string{"discovered 2 new issue(s)", "tasks: 2 running", "shutdown requested"} {
 		if !strings.Contains(logs.String(), want) {
