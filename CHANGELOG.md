@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Make the watcher concurrency-limit test wait for dispatches instead of relying on timing.
 - Use the project item discovered during polling when updating its board status.
 - Avoid piping stdin to launched agents so Codex does not report additional input.
 - Keep watching when a failed project issue has been removed from the board.
