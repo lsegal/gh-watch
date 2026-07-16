@@ -74,9 +74,12 @@ var (
 		lipgloss.NewStyle().Background(lipgloss.Color("29")).Foreground(lipgloss.Color("255")).Padding(0, 1),
 		lipgloss.NewStyle().Background(lipgloss.Color("238")).Foreground(lipgloss.Color("255")).Padding(0, 1),
 	}
-	idleCountStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	activeCountStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
-	totalCountStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	// Keep the cell background on nested styles. Lipgloss resets all
+	// attributes when rendering a foreground-only child, which otherwise
+	// truncates the status-bar background at the first colored count.
+	idleCountStyle   = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("241"))
+	activeCountStyle = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("42"))
+	totalCountStyle  = lipgloss.NewStyle().Background(lipgloss.Color("24")).Foreground(lipgloss.Color("205"))
 )
 
 func newDashboard() dashboard {

@@ -239,8 +239,8 @@ func TestStatusBarCountStyles(t *testing.T) {
 		t.Fatalf("total count color = %q, want bar", totalCountStyle.GetForeground())
 	}
 	for _, style := range []lipgloss.Style{idleCountStyle, activeCountStyle, totalCountStyle} {
-		if _, ok := style.GetBackground().(lipgloss.NoColor); !ok {
-			t.Fatalf("count background = %q, want no nested background", style.GetBackground())
+		if style.GetBackground() != lipgloss.Color("24") {
+			t.Fatalf("count background = %q, want status-bar background", style.GetBackground())
 		}
 	}
 }
