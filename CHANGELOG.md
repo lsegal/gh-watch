@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Colorize the dashboard's idle, active, and total job counts.
+- Preserve the dashboard status-bar background between colored job counts.
 - Reload and resynchronize when `.gh-watch.json` changes.
 - Default issue watching to open issues assigned to the current user.
 - Use the current user's authored issues as the default issue filter.
