@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reliably enable the agent output dashboard on supported terminal sessions.
 - Colorize the dashboard's idle, active, and total job counts.
 - Reload and resynchronize when `.gh-watch.json` changes.
 - Default issue watching to open issues assigned to the current user.
