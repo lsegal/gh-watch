@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/mattn/go-isatty"
 )
 
 type fakeSource struct {
@@ -388,10 +391,14 @@ func TestCommandRunnerPassesModelAndLevel(t *testing.T) {
 	}
 }
 
-func TestCommandRunnerDoesNotPipeAgentStdin(t *testing.T) {
+func TestCommandRunnerUsesTerminalAgentStdin(t *testing.T) {
 	cmd := newAgentCommand(context.Background(), "test-agent")
-	if cmd.Stdin != nil {
-		t.Fatal("agent stdin must not be piped")
+	terminal := isatty.IsTerminal(os.Stdin.Fd()) || isatty.IsCygwinTerminal(os.Stdin.Fd())
+	if terminal && cmd.Stdin != os.Stdin {
+		t.Fatal("agent stdin must use the terminal in interactive mode")
+	}
+	if !terminal && cmd.Stdin != nil {
+		t.Fatal("agent stdin must use the null device in headless mode")
 	}
 }
 
