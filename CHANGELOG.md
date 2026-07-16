@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix dashboard status backgrounds, agent title backgrounds, and spacing between panels.
 - Use dark, borderless dashboard viewports with distinct status-line backgrounds.
 - Support repeated `--filter` arguments and GitHub issue search syntax.
 - Prevent launched agents from waiting for additional input on stdin.
