@@ -30,7 +30,7 @@ The cleanup must be unconditional: use a deferred/finally-style cleanup guard as
 1. Reproduce or otherwise verify the reported behavior when practical.
 2. Inspect the relevant code and history, then implement the smallest complete fix consistent with repository conventions.
 3. Add or update focused tests that would fail without the fix when the repository has a relevant test framework.
-4. Locate the existing changelog case-insensitively, including project-specific paths and names. Add a concise user-facing note under its current unreleased section and follow its formatting. If the project has no changelog, create `CHANGELOG.md` with `# Changelog`, an `## Unreleased` section, and the note unless repository instructions specify another location or forbid creating one.
+4. Locate the existing changelog case-insensitively, including project-specific paths and names. Add a concise user-facing note under its current unreleased section and follow its formatting. If the project has no changelog, create `CHANGELOG.md` with `# Changelog`, an `## Unreleased` section, and the note unless repository instructions specify another location or forbid creating one. Only add changelog entries for user-visible changes; do not add internal-only notes. Do not add entry for a fix of another unreleased changelog entry.
 5. Run focused tests first, then the repository's broader required checks. Resolve failures caused by the change. Do not publish a known-broken fix.
 6. Review status and the complete diff. Include only files needed for the issue, its tests, and changelog note.
 
@@ -82,3 +82,7 @@ Continue until every required check completes successfully:
 ## Report the result
 
 Lead with the merged outcome. Include the issue and PR URLs, branch name, final commit or merge SHA, clone path, changelog file, local tests, and completed CI checks. Confirm both PR merge and issue closure. If genuinely blocked, identify the exact failed step, relevant URL or log evidence, and the remaining requirement; preserve the isolated clone and branch for continuation.
+
+## Clean up the clone
+
+Remove the isolated clone directory and any temporary files. If the workflow was blocked or failed, leave the clone intact for further investigation, but report its location to the user.
