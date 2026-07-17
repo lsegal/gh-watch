@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.0 - 2026-07-17
+
 - Add the glorp robot-patcher logo and a Hugo-powered GitHub Pages site generated directly from the README.
 - Add `--yolo` to opt into launching Codex or Claude without sandbox and permission checks.
 - Add `--no-ui` to disable the interactive dashboard and print normal logs in a terminal.
