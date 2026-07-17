@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.1 - 2026-07-17
+
 - Prevent `--no-ui` from crashing when normal log messages are written.
 
 ## v1.0.0 - 2026-07-17
