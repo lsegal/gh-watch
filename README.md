@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/glorp-logo.png" alt="glorp robot patcher logo" width="280">
+</p>
+
 # glorp
 
 **Git Loop fOr Robot Patchers** watches GitHub repositories and projects and starts a coding agent for each matching open issue.

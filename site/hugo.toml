@@ -1,0 +1,23 @@
+baseURL = "https://lsegal.github.io/glorp/"
+locale = "en-US"
+title = "glorp"
+disableKinds = ["taxonomy", "term", "RSS"]
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[module]
+  [[module.mounts]]
+    source = "site/content"
+    target = "content"
+  [[module.mounts]]
+    source = "site/layouts"
+    target = "layouts"
+  [[module.mounts]]
+    source = "site/static"
+    target = "static"
+  [[module.mounts]]
+    source = "assets"
+    target = "static/assets"

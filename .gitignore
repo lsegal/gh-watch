@@ -2,3 +2,6 @@
 glorp
 glorp.exe
 dist/
+public/
+resources/
+.hugo_build.lock
