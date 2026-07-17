@@ -1,4 +1,4 @@
-name: Deploy README to GitHub Pages
+name: Deploy Pages
 
 on:
   push:
