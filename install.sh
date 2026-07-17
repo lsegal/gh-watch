@@ -22,5 +22,5 @@ trap 'rm -rf "$tmp"' EXIT
 curl -fsSL "$url" -o "$tmp/$archive"
 tar -xzf "$tmp/$archive" -C "$tmp"
 install "$tmp/gh-watch" "$bin_dir/gh-watch"
-npx --yes skills add "$repo@gh-fix" --global --agent codex --agent claude -y
+npx --yes skills add "$repo@gh-fix" --global --agent codex --agent claude-code -y
 echo "Installed gh-watch to $bin_dir/gh-watch and gh-fix globally."

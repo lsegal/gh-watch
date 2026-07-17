@@ -33,7 +33,7 @@ try {
     if (($userPath -split ';') -notcontains $installDir) {
         [Environment]::SetEnvironmentVariable('Path', (($userPath.TrimEnd(';') + ';' + $installDir).Trim(';')), 'User')
     }
-    & npx --yes skills add "$repo@gh-fix" --global --agent codex --agent claude -y
+    & npx --yes skills add "$repo@gh-fix" --global --agent codex --agent claude-code -y
     Write-Host "Installed gh-watch to $installDir\gh-watch.exe and gh-fix globally."
 } finally {
     Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
