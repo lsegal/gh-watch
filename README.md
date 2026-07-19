@@ -4,11 +4,11 @@
 
 # glorp
 
-**Git Loop fOr Robot Patchers** watches GitHub repositories and projects and starts a coding agent for each matching open issue.
+**Git Loop fOr Robot Patchers** &emdash; a near automated loop for building. Open issues on GitHub, let the 🤖s handle the rest.
 
-glorp can run Codex or Claude Code, track several targets at once, limit concurrent agent jobs, and persist handled issues across restarts. By default it exposes a local webhook server through ngrok and synchronizes GitHub webhooks automatically. Polling-only mode is also available.
+glorp runs a daemon that watches (push or poll) GitHub repositories or project boards for issues and spins up a Claude or Codex agent for each detected issue with a configurable concurrency, tracking the issue to completion.
 
-> [!WARNING]
+> [!NOTE]
 > glorp launches agents non-interactively. Agent sandbox and permission controls remain enabled by default. `--yolo` disables those protections; use it only with repositories and issues whose contents you trust.
 
 ## Prerequisites
