@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Update attached GitHub Project statuses when repository-watched issues start, finish, or reset.
 - Keep watching when a failed project item's status cannot be reset.
 - Require issue-fixing agents to provide screenshots or recordings for completed UI changes.
 - Render live Codex progress as readable dashboard text instead of raw JSON protocol events.
