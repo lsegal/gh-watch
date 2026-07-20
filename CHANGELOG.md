@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep watching when a failed project item's status cannot be reset.
+
 ## v1.0.2 - 2026-07-20
 
 - Reset stale locally completed or active issues and requeue them when their remote state no longer matches.
