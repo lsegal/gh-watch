@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Build the browser dashboard with Vite only for release artifacts, while local development uses the Vite dev server and CI validates the UI's build, lint, and tests.
+- Restore readable spacing between metrics in the web dashboard status bar.
+- Retry webhook-triggered refreshes when GitHub's issue index lags, so newly pushed issues are not skipped.
 
 ## v1.0.4 - 2026-07-20
 
