@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Build the browser dashboard with Vite only for release artifacts, while local development uses the Vite dev server and CI validates the UI's build, lint, and tests.
+
 ## v1.0.4 - 2026-07-20
 
 - Add a localhost React browser dashboard that mirrors terminal job viewports, logs, scrolling, and status, with configurable port selection and an option to disable it.
