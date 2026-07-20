@@ -2,6 +2,19 @@ package main
 
 import "testing"
 
+func TestNgrokArgsUsePlainQuietLogging(t *testing.T) {
+	got := ngrokArgs("127.0.0.1:8080")
+	want := []string{"http", "--log=stdout", "--log-level=warn", "127.0.0.1:8080"}
+	if len(got) != len(want) {
+		t.Fatalf("arguments = %q, want %q", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("argument %d = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
 func TestDecodeNgrokURLPrefersHTTPS(t *testing.T) {
 	got, err := decodeNgrokURL([]byte(`{"tunnels":[{"public_url":"http://old.ngrok.app","proto":"http"},{"public_url":"https://new.ngrok.app/","proto":"https"}]}`))
 	if err != nil || got != "https://new.ngrok.app" {

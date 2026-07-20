@@ -59,7 +59,7 @@ func startNgrok(ctx context.Context, binary, listenAddr, apiURL string, out io.W
 	if apiURL == "" {
 		apiURL = "http://127.0.0.1:4040"
 	}
-	cmd := exec.CommandContext(ctx, binary, "http", listenAddr)
+	cmd := exec.CommandContext(ctx, binary, ngrokArgs(listenAddr)...)
 	if out != nil {
 		cmd.Stdout, cmd.Stderr = out, out
 	}
@@ -96,6 +96,12 @@ func startNgrok(ctx context.Context, binary, listenAddr, apiURL string, out io.W
 		case <-ticker.C:
 		}
 	}
+}
+
+// ngrokArgs disables ngrok's interactive terminal dashboard. Plain logging
+// keeps glorp's CLI usable while the tunnel runs in the background.
+func ngrokArgs(listenAddr string) []string {
+	return []string{"http", "--log=stdout", "--log-level=warn", listenAddr}
 }
 
 func webhookURL(publicURL, webhookPath string) (string, error) {
