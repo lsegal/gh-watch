@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.4 - 2026-07-20
+
 - Add a localhost React browser dashboard that mirrors terminal job viewports, logs, scrolling, and status, with configurable port selection and an option to disable it.
 - Use the owner type encoded in GitHub Project URLs when polling, avoiding intermittent GitHub CLI owner-detection failures.
 - Create individual follow-up issues for unresolved TODOs and known issues after merging an issue-fix pull request, preserving origin links and project membership.
