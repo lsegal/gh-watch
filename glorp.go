@@ -185,8 +185,10 @@ func (w *Glorp) Run(ctx context.Context) error {
 		return err
 	}
 	seen := make(map[string]bool, len(work))
+	restored := make(map[string]bool, len(work))
 	for key := range work {
 		seen[key] = true
+		restored[key] = true
 	}
 	w.logf("watching %s (poll every %s, concurrency %d; %d handled issue(s) loaded)", strings.Join(targets, ", "), w.Interval, w.Concurrency, len(seen))
 	sem := make(chan struct{}, w.Concurrency)
@@ -259,11 +261,20 @@ func (w *Glorp) Run(ctx context.Context) error {
 			}
 			key := issueKey(issue)
 			workMu.Lock()
+			state := work[key]
+			staleRestoredState := restored[key] && !workStateMatchesRemote(issue.Target, issue, state)
+			if staleRestoredState {
+				delete(work, key)
+				delete(seen, key)
+				delete(restored, key)
+				w.logf("issue #%d reset stale local %s state", issue.Number, state.Status)
+			}
 			_, isActive := active[key]
 			wasActive := work[key].Status == "active"
 			workMu.Unlock()
-			if issue.Number > 0 && shouldDispatchIssue(issue.Target, issue, isActive, wasActive, seen[key], w.ReadyState) {
+			if issue.Number > 0 && ((staleRestoredState && remoteIssueAllowsDispatch(issue.Target, issue, w.ReadyState)) || shouldDispatchIssue(issue.Target, issue, isActive, wasActive, seen[key], w.ReadyState)) {
 				seen[key] = true
+				delete(restored, key)
 				newIssues = append(newIssues, issue)
 			}
 		}
@@ -662,6 +673,34 @@ func shouldDispatchIssue(repo string, issue Issue, isActive, wasActive, seen boo
 		return true
 	}
 	return hasLabel(issue, agentStartedLabel)
+}
+
+func workStateMatchesRemote(target string, issue Issue, state workState) bool {
+	switch state.Status {
+	case "active":
+		if isProjectTarget(target) {
+			return strings.EqualFold(strings.TrimSpace(issue.ProjectStatus), "In Progress")
+		}
+		return hasLabel(issue, agentStartedLabel)
+	case "completed":
+		if !isProjectTarget(target) {
+			// Repository issue queries only return open issues, so an issue present
+			// in the batch cannot still be completed remotely.
+			return false
+		}
+		status := strings.TrimSpace(issue.ProjectStatus)
+		return strings.EqualFold(status, "Done") || strings.EqualFold(status, "Completed")
+	default:
+		return true
+	}
+}
+
+func remoteIssueAllowsDispatch(target string, issue Issue, readyState string) bool {
+	if !isProjectTarget(target) {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(issue.ProjectStatus), "In Progress") ||
+		projectStatusAllowsDispatch(issue.ProjectStatus, readyState)
 }
 
 func projectStatusAllowsDispatch(status, readyState string) bool {
