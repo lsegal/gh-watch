@@ -778,6 +778,77 @@ func TestShouldDispatchIssueUsesProjectStatusForRecovery(t *testing.T) {
 	}
 }
 
+func TestRestoredWorkStateMatchesRemote(t *testing.T) {
+	project := "https://github.com/users/lsegal/projects/3"
+	tests := []struct {
+		name   string
+		target string
+		issue  Issue
+		state  workState
+		want   bool
+	}{
+		{name: "repository active matches label", target: "o/r", issue: Issue{Labels: []IssueLabel{{Name: agentStartedLabel}}}, state: workState{Status: "active"}, want: true},
+		{name: "repository active missing label", target: "o/r", state: workState{Status: "active"}},
+		{name: "repository completed issue is open", target: "o/r", state: workState{Status: "completed"}},
+		{name: "project active matches status", target: project, issue: Issue{ProjectStatus: "In Progress"}, state: workState{Status: "active"}, want: true},
+		{name: "project active reset to ready", target: project, issue: Issue{ProjectStatus: "Ready"}, state: workState{Status: "active"}},
+		{name: "project completed matches done", target: project, issue: Issue{ProjectStatus: "Done"}, state: workState{Status: "completed"}, want: true},
+		{name: "project completed reset to ready", target: project, issue: Issue{ProjectStatus: "Todo"}, state: workState{Status: "completed"}},
+		{name: "failed state is not reconciled", target: "o/r", state: workState{Status: "failed"}, want: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := workStateMatchesRemote(test.target, test.issue, test.state); got != test.want {
+				t.Fatalf("workStateMatchesRemote() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestGlorpRequeuesStaleRepositoryWorkState(t *testing.T) {
+	for _, status := range []string{"active", "completed"} {
+		t.Run(status, func(t *testing.T) {
+			dir := t.TempDir()
+			statePath := filepath.Join(dir, "state.json")
+			if err := saveWorkState(statePath, map[int]workState{7: {Status: status, SessionID: "old"}}); err != nil {
+				t.Fatal(err)
+			}
+			r := &fakeRunner{release: make(chan struct{})}
+			var logs bytes.Buffer
+			w := &Glorp{
+				Repo: "o/r", Interval: time.Hour, Concurrency: 1, StatePath: statePath,
+				Issues: &fakeSource{batches: [][]Issue{{{Number: 7}}}}, Runner: r, Out: &logs,
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			done := make(chan error, 1)
+			go func() { done <- w.Run(ctx) }()
+
+			deadline := time.Now().Add(time.Second)
+			for time.Now().Before(deadline) {
+				r.mu.Lock()
+				dispatched := append([]int(nil), r.got...)
+				r.mu.Unlock()
+				if reflect.DeepEqual(dispatched, []int{7}) {
+					close(r.release)
+					cancel()
+					if err := <-done; err != nil {
+						t.Fatal(err)
+					}
+					if want := "reset stale local " + status + " state"; !strings.Contains(logs.String(), want) {
+						t.Fatalf("logs did not report %s reset:\n%s", status, logs.String())
+					}
+					return
+				}
+				time.Sleep(time.Millisecond)
+			}
+			cancel()
+			close(r.release)
+			<-done
+			t.Fatalf("open repository issue with %s local state was not requeued", status)
+		})
+	}
+}
+
 func TestProjectReadyState(t *testing.T) {
 	for _, test := range []struct {
 		configured string
