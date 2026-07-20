@@ -303,13 +303,17 @@ func (w *Glorp) Run(ctx context.Context) error {
 			}
 			_, isActive := active[key]
 			wasActive := work[key].Status == "active"
+			wasFailed := work[key].Status == "failed"
 			workMu.Unlock()
-			if issue.Number > 0 && ((staleRestoredState && remoteIssueAllowsDispatch(issue.Target, issue, w.ReadyState)) || shouldDispatchIssue(issue.Target, issue, isActive, wasActive, seen[key], w.ReadyState)) {
+			if issue.Number > 0 && (wasFailed || (staleRestoredState && remoteIssueAllowsDispatch(issue.Target, issue, w.ReadyState)) || shouldDispatchIssue(issue.Target, issue, isActive, wasActive, seen[key], w.ReadyState)) {
 				seen[key] = true
 				delete(restored, key)
 				newIssues = append(newIssues, pendingIssue{issue: issue, session: AgentSession{
 					ID: state.SessionID, Agent: state.Agent, CheckoutDirectory: state.CheckoutDirectory,
-					Resume: state.Status == "active" && state.SessionID != "" && state.Agent != "",
+					// Persisted work is not an active worker after a daemon restart or
+					// a prior failure. If it has a complete session identity, resume it
+					// so the agent can recover the existing draft PR and worktree.
+					Resume: state.SessionID != "" && state.Agent != "",
 				}})
 			}
 		}

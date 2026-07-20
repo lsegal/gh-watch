@@ -589,14 +589,15 @@ func TestCommandRunnerResumesOriginalAgentSession(t *testing.T) {
 	dir := t.TempDir()
 	codex := CommandRunner{Agent: "claude", Yolo: true, Model: "saved-model", ModelLevel: "high"}
 	session := AgentSession{ID: "session-7", Agent: "codex", CheckoutDirectory: dir, Resume: true}
-	wantCodex := []string{"exec", "resume", "--dangerously-bypass-approvals-and-sandbox", "session-7", "continue"}
+	resumePrompt := "continue\n\nRecover the existing work. If this issue has a draft pull request, inspect it and pull its branch before continuing."
+	wantCodex := []string{"exec", "resume", "--dangerously-bypass-approvals-and-sandbox", "session-7", resumePrompt}
 	if got := commandArgsForSession(codex, Issue{Number: 7}, session); !reflect.DeepEqual(got, wantCodex) {
 		t.Fatalf("Codex resume args = %#v, want %#v", got, wantCodex)
 	}
 
 	claude := CommandRunner{Agent: "codex", Yolo: true, Model: "saved-model", ModelLevel: "medium"}
 	session.Agent = "claude"
-	wantClaude := []string{"-p", "--resume", "session-7", "--dangerously-skip-permissions", "continue"}
+	wantClaude := []string{"-p", "--resume", "session-7", "--dangerously-skip-permissions", resumePrompt}
 	if got := commandArgsForSession(claude, Issue{Number: 7}, session); !reflect.DeepEqual(got, wantClaude) {
 		t.Fatalf("Claude resume args = %#v, want %#v", got, wantClaude)
 	}
@@ -718,6 +719,36 @@ func TestGlorpResumesPersistedSessionWithOriginalAgent(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("persisted session was not resumed")
+	}
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGlorpReclaimsFailedPersistedSession(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	want := workState{Status: "failed", SessionID: "session-167", Agent: "codex", CheckoutDirectory: dir}
+	if err := saveWorkState(statePath, map[int]workState{167: want}); err != nil {
+		t.Fatal(err)
+	}
+	runner := &fakeSessionRunner{agent: "claude", sessions: make(chan AgentSession, 1)}
+	w := &Glorp{
+		Repo: "lsegal/glorp", Interval: time.Hour, Concurrency: 1, StatePath: statePath,
+		Issues: &fakeSource{batches: [][]Issue{{{Number: 167}}}}, Runner: runner,
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- w.Run(ctx) }()
+
+	select {
+	case got := <-runner.sessions:
+		if !got.Resume || got.ID != want.SessionID || got.Agent != want.Agent || got.CheckoutDirectory != want.CheckoutDirectory {
+			t.Fatalf("reclaimed session = %#v, want persisted %#v", got, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("failed persisted session was not reclaimed")
 	}
 	cancel()
 	if err := <-done; err != nil {

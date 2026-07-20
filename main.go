@@ -789,9 +789,12 @@ func commandArgsForSession(r CommandRunner, issue Issue, session AgentSession) [
 			prompt += "\n\nRepository: " + repo
 		}
 		prompt += "\n\nKeep your responses concise. Do not include code diffs or large code blocks; summarize the changes and tests instead."
-	} else if session.CheckoutDirectory != "" {
-		if _, err := os.Stat(session.CheckoutDirectory); os.IsNotExist(err) {
-			prompt += "\n\nThe original repository directory no longer exists. Regenerate any missing work before continuing."
+	} else {
+		prompt += "\n\nRecover the existing work. If this issue has a draft pull request, inspect it and pull its branch before continuing."
+		if session.CheckoutDirectory != "" {
+			if _, err := os.Stat(session.CheckoutDirectory); os.IsNotExist(err) {
+				prompt += "\n\nThe original repository directory no longer exists. Regenerate any missing work before continuing."
+			}
 		}
 	}
 	agent := session.Agent
