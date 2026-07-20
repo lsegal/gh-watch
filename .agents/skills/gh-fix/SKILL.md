@@ -49,11 +49,11 @@ Immediately after creating the branch, publish it and open a draft pull request 
 
 After implementation is complete, and only then, determine whether any changed file affects a user interface. If so:
 
-1. Capture screenshots that show the completed UI change in representative final states. When the change includes animation, interaction, or a state transition, capture a screen recording that demonstrates the behavior instead of or in addition to screenshots.
+1. Capture screenshots that show the completed UI change in representative final states. When the change includes animation, interaction, or a state transition, capture a screen recording that demonstrates the behavior instead of or in addition to screenshots. For animations, plan a set of actions that "use" the full features in their entirety, including any secondary use cases like error handling.
 2. For browser-based interfaces, run the UI and use available browser tooling, such as CDP or browser automation, to capture the evidence.
 3. For terminal based interfaces, copy output as text if there is no visual / animation / state change.
-3. For all other non-browser interfaces, use an available local application or platform capture tool. If no suitable capture tool is installed, install Loom and use it to record the evidence.
-4. Attach the resulting screenshots or recording to the pull request, or add stable links to them. Treat missing required UI evidence as a blocker to opening or merging the pull request.
+4. For all other non-browser interfaces, use an available local application or platform capture tool. If no suitable capture tool is installed, install Loom and use it to record the evidence.
+5. Attach the resulting screenshots or recording to the pull request, or add stable links to them. Treat missing required UI evidence as a blocker to opening or merging the pull request.
 
 Skip this section only when the completed diff does not affect UI code in any way.
 Skip if you run into 2+ errors trying to capture results and mention this in the PR.
