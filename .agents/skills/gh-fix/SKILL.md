@@ -44,6 +44,7 @@ After implementation is complete, and only then, determine whether any changed f
 4. Attach the resulting screenshots or recording to the pull request, or add stable links to them. Treat missing required UI evidence as a blocker to opening or merging the pull request.
 
 Skip this section only when the completed diff does not affect UI code in any way.
+Skip if you run into 2+ errors trying to capture results and mention this in the PR.
 
 ## Commit and push
 
