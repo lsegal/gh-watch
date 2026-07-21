@@ -161,6 +161,7 @@ function App() {
 					{connected ? "live" : "reconnecting"}
 				</div>
 			</div>
+			<StatusBar snapshot={snapshot} connected={connected} />
 			<section className="job-grid" aria-label="Agent jobs">
 				{(snapshot.Jobs || []).length ? (
 					snapshot.Jobs.map((job) => <JobCard key={job.Number} job={job} />)
@@ -180,7 +181,6 @@ function App() {
 					empty="waiting for daemon logs..."
 				/>
 			</section>
-			<StatusBar snapshot={snapshot} connected={connected} />
 		</main>
 	);
 }
