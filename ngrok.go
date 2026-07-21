@@ -98,10 +98,11 @@ func startNgrok(ctx context.Context, binary, listenAddr, apiURL string, out io.W
 	}
 }
 
-// ngrokArgs disables ngrok's interactive terminal dashboard. Plain logging
-// keeps glorp's CLI usable while the tunnel runs in the background.
+// ngrokArgs keeps ngrok from entering its interactive terminal dashboard,
+// which clears glorp's UI. Critical-only logging suppresses a benign Windows
+// agent-path diagnostic while retaining fatal startup output.
 func ngrokArgs(listenAddr string) []string {
-	return []string{"http", "--log=stdout", "--log-level=warn", listenAddr}
+	return []string{"http", "--log=stdout", "--log-level=crit", listenAddr}
 }
 
 func webhookURL(publicURL, webhookPath string) (string, error) {

@@ -2,9 +2,9 @@ package main
 
 import "testing"
 
-func TestNgrokArgsUsePlainQuietLogging(t *testing.T) {
+func TestNgrokArgsKeepTerminalDashboardDisabled(t *testing.T) {
 	got := ngrokArgs("127.0.0.1:8080")
-	want := []string{"http", "--log=stdout", "--log-level=warn", "127.0.0.1:8080"}
+	want := []string{"http", "--log=stdout", "--log-level=crit", "127.0.0.1:8080"}
 	if len(got) != len(want) {
 		t.Fatalf("arguments = %q, want %q", got, want)
 	}
